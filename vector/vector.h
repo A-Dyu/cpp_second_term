@@ -10,7 +10,7 @@ struct vector
     typedef T* iterator;
     typedef T const* const_iterator;
 
-    vector() : size_(0), capacity_(0), data_(nullptr) {};
+    vector() : data_(nullptr), size_(0), capacity_(0) {};
     vector(vector<T> const& v) : vector() {
         vector<T> safe = vector(v.data_, v.size_, v.capacity_);
         swap(safe);
