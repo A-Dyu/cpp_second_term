@@ -2,4 +2,3 @@
 build/
 cmake-build-*
 asm/tests/*.txt
-vector/CMakeLists.txt
