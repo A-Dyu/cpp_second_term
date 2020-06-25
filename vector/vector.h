@@ -97,13 +97,15 @@ struct vector
     }
     
     void shrink_to_fit() {
-        if (size_ < capacity_)
+        if (size_ < capacity_) {
             change_capacity(size_);
+        }
     }
 
     void clear() {
-        while (size_)
+        while (size_) {
             pop_back();
+        }
     }
 
     void swap(vector& v) {
