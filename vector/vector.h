@@ -11,13 +11,17 @@ struct vector
     typedef T const* const_iterator;
 
     vector() : data_(nullptr), size_(0), capacity_(0) {};
-    vector(vector<T> const& v) : vector() {
-        vector<T> safe = vector(v.data_, v.size_, v.capacity_);
+
+    vector(vector const& v) : vector() {
+        vector<T> safe = vector(v.data_, v.size_, v.size_);
         swap(safe);
     }
-    vector& operator=(vector<T> const& v) {
-        vector safe(v);
-        swap(safe);
+
+    vector& operator=(vector const& v) {
+        if (&v != this) {
+            vector safe(v);
+            swap(safe);
+        }
         return *this;
     }
 
@@ -26,25 +30,50 @@ struct vector
         operator delete(data_);
     }
 
-    T& operator[](size_t i) {return data_[i];}
-    T const& operator[](size_t i) const {return data_[i];}
+    T& operator[](size_t i) {
+        return data_[i];
+    }
 
-    T* data() {return data_;}
-    T const* data() const {return data_;}
-    size_t size() const {return size_;}
+    T const& operator[](size_t i) const {
+        return data_[i];
+    }
 
-    T& front() {return *begin();}
-    T const& front() const {return *begin();}
+    T* data() {
+        return data_;
+    }
 
-    T& back() {return *(end() - 1);}
-    T const& back() const {return *(end() - 1);}
+    T const* data() const {
+        return data_;
+    }
+
+    size_t size() const {
+        return size_;
+    }
+
+    T& front() {
+        return *begin();
+    }
+
+    T const& front() const {
+        return *begin();
+    }
+
+    T& back() {
+        return *(end() - 1);
+    }
+
+    T const& back() const {
+        return *(end() - 1);
+    }
 
     void push_back(T const& x) {
-        T safe = x;
         if (size_ == capacity_) {
+            T safe = x;
             change_capacity((capacity_ + 1) * 2);
+            new(end()) T(safe);
+        } else {
+            new(end()) T(x);
         }
-        new(end()) T(safe);
         size_++;
     }
 
@@ -53,15 +82,20 @@ struct vector
         data_[size_].~T();
     }
 
-    bool empty() const {return size_ == 0;}
+    bool empty() const {
+        return size_ == 0;
+    }
 
-    size_t capacity() const {return capacity_;}
+    size_t capacity() const {
+        return capacity_;
+    }
 
     void reserve(size_t capacity) {
         if (capacity > capacity_) {
-            change_capacity(capacity - capacity_);
+            change_capacity(capacity);
         }
     }
+    
     void shrink_to_fit() {
         if (size_ < capacity_)
             change_capacity(size_);
@@ -78,35 +112,42 @@ struct vector
         std::swap(capacity_, v.capacity_);
     }
 
-    iterator begin() {return data_;}
-    iterator end() {return (data_ + size_);}
+    iterator begin() {
+        return data_;
+    }
 
-    const_iterator begin() const {return data_;};
-    const_iterator end() const {return (data_ + size_);}
+    iterator end() {
+        return (data_ + size_);
+    }
+
+    const_iterator begin() const {
+        return data_;
+    }
+
+    const_iterator end() const {
+        return (data_ + size_);
+    }
 
     iterator insert(const_iterator pos, T const& x) {
-        size_t ind = pos - begin();
-        if (ind == size_) {
-            push_back(x);
-        } else {
-            push_back(back());
-            for (size_t i = size_ - 2; i > ind; i--) {
-                std::swap(data_[i], data_[i - 1]);
-            }
-            data_[ind] = x;
+        ptrdiff_t ind = pos - begin();
+        push_back(x);
+        for (size_t i = size_ - 1; i > ind; i--) {
+            std::swap(data_[i], data_[i - 1]);
         }
         return begin() + ind;
     }
 
     iterator erase(const_iterator first, const_iterator last) {
-        size_t ind = first - begin();
-        size_t k = last - first;
-        for (size_t i = ind; i < size_ - k; i++) {
-            std::swap(data_[i], data_[i + k]);
-        }
-        while (k) {
-            pop_back();
-            k--;
+        ptrdiff_t ind = first - begin();
+        ptrdiff_t k = last - first;
+        if (last >= first) {
+            for (size_t i = ind; i < size_ - k; i++) {
+                std::swap(data_[i], data_[i + k]);
+            }
+            while (k) {
+                pop_back();
+                k--;
+            }
         }
         return begin() + ind;
     }
@@ -135,6 +176,7 @@ private:
             capacity_ = capacity;
         }
     }
+
     void change_capacity(size_t new_capacity) {
         vector<T> safe(data_, size_, new_capacity);
         swap(safe);
