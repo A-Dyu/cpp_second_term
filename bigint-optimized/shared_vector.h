@@ -28,8 +28,9 @@ struct shared_vector {
     ~shared_vector() {
         if (state == 2) {
             data->ref_counter--;
-            if (data->ref_counter == 0)
-                delete data;
+            if (data->ref_counter == 0) {
+                delete(data);
+            }
         }
     }
 
@@ -51,10 +52,8 @@ struct shared_vector {
             data->v.push_back(x);
         } else if (state == 1) {
             uint32_t _val = value;
-            data = new shared_pointer();
-            data->v.push_back(_val);
-            data->v.push_back(x);
             turn_state(2);
+            data->v.push_back(x);
         } else {
             turn_state(1);
             value = x;
@@ -113,13 +112,9 @@ struct shared_vector {
 
 private:
     void unshare() {
-        if (state == 2) {
-            if (data->ref_counter > 1) {
-                data->ref_counter--;
-                if (data->ref_counter == 0)
-                    delete(data);
-                data = new shared_pointer(data->v);
-            }
+        if (state == 2 && data->ref_counter > 1) {
+            data->ref_counter--;
+            data = new shared_pointer(data->v);
         }
     }
 
@@ -129,6 +124,13 @@ private:
             int x = data->v[0];
             delete(data);
             value = x;
+        }
+        if (state != 2 && st == 2) {
+            int _val = value;
+            data = new shared_pointer();
+            if (state == 1) {
+                data->v.push_back(_val);
+            }
         }
         state = st;
     }
