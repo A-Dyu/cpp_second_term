@@ -92,11 +92,13 @@ struct shared_vector {
             turn_state(0);
         } else if (n == 1) {
             turn_state(1);
-        } else if (n < size()) {
-            pop_back();
         } else {
-            while (n > size())
+            while (n > size()) {
                 push_back(0);
+            }
+            while (n < size()) {
+                pop_back();
+            }
         }
     }
 
