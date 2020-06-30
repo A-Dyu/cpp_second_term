@@ -289,7 +289,7 @@ big_integer operator*(big_integer const& a, big_integer const& b) {
         for (size_t j = 0; j < b.digits.size() + cb; j++) {
             uint64_t mul = static_cast<uint64_t>(xa) * (j < b.digits.size() ? negate_digit(b.sign, b.digits[j], cb) : cb) +
                            static_cast<uint64_t>(res.digits[i + j]) + c;
-            res.digits[i + j] = mul;
+            res.digits[i + j] = cast_64_down_to_32(mul);
             c = mul >> 32;
         }
         res.digits[i + b.digits.size()] = c;
@@ -304,6 +304,14 @@ big_integer operator*(big_integer const& a, big_integer const& b) {
 namespace {
     uint128_t shiftr128(uint32_t x, int shift) {
         return static_cast<uint128_t>(x) << shift;
+    }
+
+    uint128_t shift_or_128(std::vector<uint32_t> digits, size_t k) {
+        uint128_t res = 0;
+        for (size_t i = 1; i <= k; i++) {
+            res |= shiftr128(digits[digits.size() - i], 32 * (k - i));
+        }
+        return res;
     }
 }
 
@@ -328,10 +336,8 @@ big_integer operator/(big_integer const& a, big_integer const& b) {
     res.digits.resize(n - m + 1);
     uint32_t qt = 0;
     for (size_t i = m, j = res.digits.size() - 1; i <= n; i++, j--) {
-        uint128_t x = shiftr128(a_abs.digits[a_abs.digits.size() - 1], 64) |
-                      shiftr128(a_abs.digits[a_abs.digits.size() - 2], 32) |
-                      shiftr128(a_abs.digits[a_abs.digits.size() - 3], 0);
-        uint128_t y = shiftr128(b_abs.digits[b_abs.digits.size() - 1], 32) | shiftr128(b_abs.digits[b_abs.digits.size() - 2], 0);
+        uint128_t x = shift_or_128(a_abs.digits, 3);
+        uint128_t y = shift_or_128(b_abs.digits, 2);
         qt = static_cast<uint32_t>(std::min(static_cast<uint128_t>(UINT32_MAX), x / y));
         dq = b_abs * qt;
         if (!a_abs.less(dq.abs(), m)) {
