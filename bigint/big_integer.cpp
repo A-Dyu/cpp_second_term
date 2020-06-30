@@ -433,10 +433,10 @@ big_integer& big_integer::operator<<=(int b) {
     int k = b / 32;
     b %= 32;
     convert(digits.size() + k);
-    for (size_t i = digits.size(); i > k; i--) {
+    for (size_t i = digits.size(); i > static_cast<size_t>(k); i--) {
         digits[i - 1] = digits[i - k - 1];
     }
-    for (size_t i = 0; i < (size_t) k; i++) {
+    for (size_t i = 0; i < static_cast<size_t>(k); i++) {
         digits[i] = 0;
     }
     format();
