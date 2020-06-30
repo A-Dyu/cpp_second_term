@@ -1,4 +1,4 @@
-#include <iostream>
+#include <cassert>
 #include "big_integer.h"
 
 typedef unsigned __int128 uint128_t;
