@@ -7,27 +7,26 @@
 
 struct big_integer {
 private:
-    std::vector<uint32_t> dig;
+    std::vector<uint32_t> digits;
     bool sign;
 public:
     big_integer();
     big_integer(const big_integer&) = default;
     big_integer(uint32_t);
     big_integer(int);
-    explicit big_integer(std::string);
+    explicit big_integer(std::string const&);
     big_integer& operator=(big_integer const&) = default;
 
-    friend std::string to_string(big_integer);
+    friend std::string to_string(big_integer const&);
 
     big_integer operator~() const;
     big_integer operator-() const;
     big_integer operator+() const;
     big_integer& operator++();
-    big_integer const operator++(int) ;
+    big_integer operator++(int) ;
     big_integer& operator--();
-    big_integer const operator--(int);
+    big_integer operator--(int);
 
-    friend big_integer operator+(big_integer, big_integer const&);
     friend big_integer operator*(big_integer const&, big_integer const&);
     friend big_integer operator/(big_integer const&, big_integer const&);
 
@@ -38,7 +37,7 @@ public:
     friend big_integer operator&(big_integer, big_integer const&);
     friend big_integer operator^(big_integer, big_integer const&);
 
-    big_integer& operator+=(big_integer);
+    big_integer& operator+=(big_integer const&);
     big_integer& operator-=(big_integer const&);
     big_integer& operator*=(big_integer const&);
     big_integer& operator/=(big_integer const&);
@@ -60,12 +59,17 @@ private:
     void format();
     big_integer abs() const;
     bool less(big_integer const&, size_t) const;
-    void dif(big_integer const&, size_t);
+    void diff(big_integer const&, size_t);
     big_integer div_short(uint32_t) const;
-    void bit_op(big_integer, const std::function<uint32_t(uint32_t, uint32_t)>&);
+    void bit_op(big_integer const&, const std::function<uint32_t(uint32_t, uint32_t)>&);
     void append_substr(std::string const&);
+    void tilde();
+    void negate();
+    uint32_t get(size_t) const;
+    void add(big_integer const&, bool);
 };
 
-big_integer operator-(big_integer const&, big_integer const&);
+big_integer operator+(big_integer, big_integer const&);
+big_integer operator-(big_integer, big_integer const&);
 big_integer operator%(big_integer const&, big_integer const&);
 bool operator!=(big_integer const&, big_integer const&);
