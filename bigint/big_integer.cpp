@@ -373,18 +373,7 @@ big_integer operator>>(big_integer const& a, int b) {
 }
 
 big_integer operator<<(big_integer a, int b) {
-    int k = b / 32;
-    b %= 32;
-    a.convert(a.digits.size() + k);
-    for (int i = (int)a.digits.size() - 1; i >= k; i--) {
-        a.digits[i] = a.digits[i - k];
-    }
-    for (size_t i = 0; i < (size_t) k; i++) {
-        a.digits[i] = 0;
-    }
-    a.format();
-    a *= (static_cast<uint32_t>(1) << b);
-    return a;
+    return a <<= b;
 }
 
 big_integer operator|(big_integer a, big_integer const& b) {
@@ -436,12 +425,23 @@ big_integer& big_integer::operator^=(big_integer const& x) {
     return *this;
 }
 
-big_integer& big_integer::operator>>=(int x) {
-    return *this = *this >> x;
+big_integer& big_integer::operator>>=(int b) {
+    return *this = *this >> b;
 }
 
-big_integer& big_integer::operator<<=(int x) {
-    return *this = *this << x;
+big_integer& big_integer::operator<<=(int b) {
+    int k = b / 32;
+    b %= 32;
+    convert(digits.size() + k);
+    for (size_t i = digits.size(); i > k; i--) {
+        digits[i - 1] = digits[i - k - 1];
+    }
+    for (size_t i = 0; i < (size_t) k; i++) {
+        digits[i] = 0;
+    }
+    format();
+    *this *= (static_cast<uint32_t>(1) << b);
+    return *this;
 }
 
 bool operator==(big_integer const& a, big_integer const& b) {
