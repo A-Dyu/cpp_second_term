@@ -4,13 +4,68 @@
 #include "shared_pointer.h"
 
 struct shared_vector {
-    shared_vector(): state(0) {}
-    shared_vector(shared_vector const& other): state(other.state) {
-        if (state == 2) {
-            data = other.data;
-            data->ref_counter++;
+private:
+    static const size_t SMALL_SIZE = sizeof(shared_pointer*) / sizeof(uint32_t);
+    bool is_big;
+    size_t _size;
+    union {
+        uint32_t small_value[SMALL_SIZE];
+        shared_pointer* data;
+    };
+
+    static void small_copy(uint32_t* a, const uint32_t* b, size_t copy_size) {
+        for (size_t i = 0; i < copy_size; i++) {
+            a[i] = b[i];
+        }
+    }
+
+    void swap(shared_vector& other) {
+        if (is_big) {
+            if (other.is_big) {
+                std::swap(data, other.data);
+            } else {
+                shared_pointer* _data = data;
+                small_copy(small_value, other.small_value, other._size);
+                other.data = _data;
+            }
         } else {
-            value = other.value;
+            if (other.is_big) {
+                shared_pointer* _data = other.data;
+                small_copy(other.small_value, small_value, _size);
+                data = _data;
+            } else {
+                std::swap(small_value, other.small_value);
+            }
+        }
+        std::swap(_size, other._size);
+        std::swap(is_big, other.is_big);
+    }
+
+    void free() {
+        if (is_big) {
+            unshare(data);
+        }
+    }
+
+    void turn_big() {
+        if (!is_big) {
+            uint32_t _val[SMALL_SIZE];
+            small_copy(_val, small_value, size());
+            data = new shared_pointer();
+            for (size_t i = 0; i < size(); i++) {
+                data->push_back(_val[i]);
+            }
+            is_big = true;
+        }
+    }
+
+public:
+    shared_vector(): is_big(false), _size(0) {}
+    shared_vector(shared_vector const& other): is_big(other.is_big), _size(other._size) {
+        if (is_big) {
+            share(data, other.data);
+        } else {
+            small_copy(small_value, other.small_value, _size);
         }
     }
 
@@ -23,144 +78,74 @@ struct shared_vector {
     }
 
     ~shared_vector() {
-        if (state == 2) {
-            data->ref_counter--;
-            if (data->ref_counter == 0) {
-                delete data;
-            }
+        if (is_big) {
+            destroy(data);
         }
     }
 
     size_t size() const {
-        if (state == 2) {
-            return data->v.size();
-        } else {
-            return state;
-        }
+        return is_big ? data->size() : _size;
     }
 
     bool empty() const {
-        return state == 0;
+        return size() == 0;
     }
 
     void push_back(uint32_t x) {
-        if (state == 2) {
-            unshare();
-            data->v.push_back(x);
-        } else if (state == 1) {
-            turn_state(2);
-            data->v.push_back(x);
+        if (size() == SMALL_SIZE) {
+            turn_big();
+        }
+        if (is_big) {
+            free();
+            data->push_back(x);
         } else {
-            turn_state(1);
-            value = x;
+            small_value[_size++] = x;
         }
     }
 
     void pop_back() {
-        if (state == 2) {
-            unshare();
-            data->v.pop_back();
-            if (data->v.size() == 1) {
-                turn_state(1);
-            }
+        if (is_big) {
+            free();
+            data->pop_back();
         } else {
-            turn_state(0);
+            _size--;
         }
     }
 
     uint32_t const& operator[](size_t i) const {
-        return state == 2 ? data->v[i] : value;
+        return is_big ? (*data)[i] : small_value[i];
     }
 
     uint32_t& operator[](size_t i) {
-        unshare();
-        return state == 2 ? data->v[i] : value;
+        free();
+        return is_big ? (*data)[i] : small_value[i];
     }
 
     uint32_t const& back() const {
-        return state == 2 ? data->v.back() : value;
+        return is_big ? data->back() : small_value[_size - 1];
     }
 
     uint32_t& back() {
-        unshare();
-        return state == 2 ? data->v.back() : value;
+        free();
+        return is_big ? data->back() : small_value[_size - 1];
     }
 
     void resize(size_t n) {
-        unshare();
-        if (n == 0) {
-            turn_state(0);
-        } else if (n == 1) {
-            if (state == 0) {
-                value = 0;
-            }
-            turn_state(1);
-        } else {
-            while (n > size()) {
-                push_back(0);
-            }
-            while (n < size()) {
-                pop_back();
-            }
+        free();
+        while (n > size()) {
+            push_back(0);
+        }
+        while (n < size()) {
+            pop_back();
         }
     }
 
     void reverse() {
-        unshare();
-        if (state == 2) {
-            std::reverse(data->v.begin(), data->v.end());
-        }
-    }
-
-private:
-    void swap(shared_vector& other) {
-        if (state != 2) {
-            uint32_t _val = value;
-            if (other.state == 2) {
-                data = other.data;
-            } else {
-                value = other.value;
-            }
-            other.value = _val;
+        free();
+        if (is_big) {
+            data->reverse();
         } else {
-            shared_pointer* _data = data;
-            if (other.state == 2) {
-                data = other.data;
-            } else {
-                value = other.value;
-            }
-            other.data = _data;
-        }
-        std::swap(state, other.state);
-    }
-
-    void unshare() {
-        if (state == 2 && data->ref_counter > 1) {
-            data->ref_counter--;
-            data = new shared_pointer(data->v);
+            std::reverse(small_value, small_value + _size);
         }
     }
-
-    void turn_state(char st) {
-        if (state == 2 && st != 2) {
-            unshare();
-            int x = data->v[0];
-            delete data;
-            value = x;
-        }
-        if (state != 2 && st == 2) {
-            uint32_t _val = value;
-            data = new shared_pointer();
-            if (state == 1) {
-                data->v.push_back(_val);
-            }
-        }
-        state = st;
-    }
-
-    char state;
-    union {
-        uint32_t value;
-        shared_pointer* data;
-    };
 };
