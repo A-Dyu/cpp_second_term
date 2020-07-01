@@ -5,7 +5,7 @@
 
 struct shared_vector {
 private:
-    static const size_t SMALL_SIZE = sizeof(shared_pointer*) / sizeof(uint32_t);
+    static constexpr size_t SMALL_SIZE = sizeof(shared_pointer*) / sizeof(uint32_t);
     bool is_big;
     size_t _size;
     union {
@@ -13,25 +13,19 @@ private:
         shared_pointer* data;
     };
 
-    static void small_copy(uint32_t* a, const uint32_t* b, size_t copy_size) {
-        for (size_t i = 0; i < copy_size; i++) {
-            a[i] = b[i];
-        }
-    }
-
     void swap(shared_vector& other) {
         if (is_big) {
             if (other.is_big) {
                 std::swap(data, other.data);
             } else {
                 shared_pointer* _data = data;
-                small_copy(small_value, other.small_value, other._size);
+                std::copy_n(other.small_value, other._size, small_value);
                 other.data = _data;
             }
         } else {
             if (other.is_big) {
                 shared_pointer* _data = other.data;
-                small_copy(other.small_value, small_value, _size);
+                std::copy_n(small_value, _size, other.small_value);
                 data = _data;
             } else {
                 std::swap(small_value, other.small_value);
@@ -41,20 +35,17 @@ private:
         std::swap(is_big, other.is_big);
     }
 
-    void free() {
+    void ensure_unique() {
         if (is_big) {
-            unshare(data);
+            data = shared_pointer::unshare(data);
         }
     }
 
     void turn_big() {
         if (!is_big) {
             uint32_t _val[SMALL_SIZE];
-            small_copy(_val, small_value, size());
-            data = new shared_pointer();
-            for (size_t i = 0; i < size(); i++) {
-                data->push_back(_val[i]);
-            }
+            std::copy_n(small_value, size(), _val);
+            data = new shared_pointer(small_value, small_value + _size);
             is_big = true;
         }
     }
@@ -63,9 +54,9 @@ public:
     shared_vector(): is_big(false), _size(0) {}
     shared_vector(shared_vector const& other): is_big(other.is_big), _size(other._size) {
         if (is_big) {
-            share(data, other.data);
+            data = shared_pointer::share(other.data);
         } else {
-            small_copy(small_value, other.small_value, _size);
+            std::copy_n(other.small_value, _size, small_value);
         }
     }
 
@@ -79,7 +70,7 @@ public:
 
     ~shared_vector() {
         if (is_big) {
-            destroy(data);
+            shared_pointer::destroy(data);
         }
     }
 
@@ -96,7 +87,7 @@ public:
             turn_big();
         }
         if (is_big) {
-            free();
+            ensure_unique();
             data->push_back(x);
         } else {
             small_value[_size++] = x;
@@ -105,7 +96,7 @@ public:
 
     void pop_back() {
         if (is_big) {
-            free();
+            ensure_unique();
             data->pop_back();
         } else {
             _size--;
@@ -117,7 +108,7 @@ public:
     }
 
     uint32_t& operator[](size_t i) {
-        free();
+        ensure_unique();
         return is_big ? (*data)[i] : small_value[i];
     }
 
@@ -126,22 +117,27 @@ public:
     }
 
     uint32_t& back() {
-        free();
+        ensure_unique();
         return is_big ? data->back() : small_value[_size - 1];
     }
 
     void resize(size_t n) {
-        free();
-        while (n > size()) {
-            push_back(0);
+        ensure_unique();
+        if (n > SMALL_SIZE) {
+            turn_big();
         }
-        while (n < size()) {
-            pop_back();
+        if (is_big) {
+            data->resize(n);
+        } else {
+            while (n > size()) {
+                small_value[_size++] = 0;
+            }
+            _size = n;
         }
     }
 
     void reverse() {
-        free();
+        ensure_unique();
         if (is_big) {
             data->reverse();
         } else {

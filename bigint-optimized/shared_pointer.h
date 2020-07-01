@@ -12,19 +12,22 @@ public:
 
     shared_pointer(std::vector<uint32_t> const& other): ref_counter(1), v(other) {}
 
-    friend void share(shared_pointer* &a, shared_pointer* const b) {
-        a = b;
-        a->ref_counter++;
+    shared_pointer(const uint32_t* begin, const uint32_t* end): ref_counter(1), v(begin, end) {}
+
+    static shared_pointer* share(shared_pointer* const p) {
+        p->ref_counter++;
+        return p;
     }
 
-    friend void unshare(shared_pointer* &a) {
+    static shared_pointer* unshare(shared_pointer* a) {
         if (a->ref_counter > 1) {
             a->ref_counter--;
             a = new shared_pointer(a->v);
         }
+        return a;
     }
 
-    friend void destroy(shared_pointer* a) {
+    static void destroy(shared_pointer* a) {
         a->ref_counter--;
         if (a->ref_counter == 0) {
             delete a;
@@ -49,6 +52,10 @@ public:
 
     void reverse() {
         std::reverse(v.begin(), v.end());
+    }
+
+    void resize(size_t n) {
+        v.resize(n);
     }
 
     uint32_t const& operator[](size_t i) const {
