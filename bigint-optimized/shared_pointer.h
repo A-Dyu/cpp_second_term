@@ -12,7 +12,7 @@ public:
 
     shared_pointer(std::vector<uint32_t> const& other): ref_counter(1), v(other) {}
 
-    friend void share(shared_pointer* &a, shared_pointer* b) {
+    friend void share(shared_pointer* &a, shared_pointer* const b) {
         a = b;
         a->ref_counter++;
     }
