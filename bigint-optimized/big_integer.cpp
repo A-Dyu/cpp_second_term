@@ -306,7 +306,7 @@ namespace {
         return static_cast<uint128_t>(x) << shift;
     }
 
-    uint128_t shift_or_128(shared_vector const& digits, size_t k) {
+    uint128_t shift_or_128(shared_so_vector const& digits, size_t k) {
         uint128_t res = 0;
         for (size_t i = 1; i <= k; i++) {
             res |= shiftr128(digits[digits.size() - i], 32 * (k - i));

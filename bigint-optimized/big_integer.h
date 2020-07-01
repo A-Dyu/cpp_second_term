@@ -4,11 +4,11 @@
 #include <string>
 #include <algorithm>
 #include <functional>
-#include "shared_vector.h"
+#include "shared_so_vector.h"
 
 struct big_integer {
 private:
-    shared_vector digits;
+    shared_so_vector digits;
     bool sign;
 public:
     big_integer();
