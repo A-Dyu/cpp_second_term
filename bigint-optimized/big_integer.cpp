@@ -135,7 +135,7 @@ big_integer big_integer::div_short(uint32_t b) const {
         res.digits.push_back(cast_64_down_to_32(x / b));
         c = x % b;
     }
-    res.digits.reverse();
+    std::reverse(res.digits.begin(), res.digits.end());
     res.format();
     return res;
 }
@@ -306,7 +306,7 @@ namespace {
         return static_cast<uint128_t>(x) << shift;
     }
 
-    uint128_t shift_or_128(shared_so_vector const& digits, size_t k) {
+    uint128_t shift_or_128(opt_vector const& digits, size_t k) {
         uint128_t res = 0;
         for (size_t i = 1; i <= k; i++) {
             res |= shiftr128(digits[digits.size() - i], 32 * (k - i));
@@ -501,3 +501,8 @@ bool operator<=(big_integer const& a, big_integer const& b) {
 bool operator>=(big_integer const& a, big_integer const& b) {
     return !(a < b);
 }
+
+
+
+
+
